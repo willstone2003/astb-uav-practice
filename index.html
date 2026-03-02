@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASTB UAV PBM Practice Tool</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Courier New', monospace; background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+#app { width: 100%; height: 100%; }
+
+/* Settings Screen */
+.settings-screen {
+  width: 100%; height: 100%; background: #0a1a0a;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 20px;
+}
+.settings-screen h1 { color: #0f0; font-size: clamp(20px, 4vw, 36px); margin-bottom: 8px; text-align: center; }
+.settings-screen .subtitle { color: #0a0; font-size: clamp(11px, 1.3vw, 14px); margin-bottom: 30px; text-align: center; }
+.settings-box {
+  width: 100%; max-width: 500px; background: rgba(0,40,0,0.4);
+  border: 2px solid #0f0; padding: 24px; border-radius: 8px;
+}
+.toggle-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+}
+.toggle-row span { color: #0f0; font-size: clamp(13px, 1.8vw, 18px); flex: 1 1 200px; }
+.toggle-btn {
+  padding: 6px 20px; cursor: pointer; font-size: clamp(13px, 1.5vw, 16px);
+  font-family: 'Courier New', monospace; font-weight: bold; min-width: 70px; border-radius: 0;
+}
+.toggle-on { background: rgba(0,255,0,0.2); border: 2px solid #0f0; color: #0f0; }
+.toggle-off { background: rgba(255,0,0,0.2); border: 2px solid #f44; color: #f44; }
+.diff-btn {
+  flex: 1 1 180px; padding: 10px; cursor: pointer;
+  font-size: clamp(11px, 1.3vw, 14px); font-family: 'Courier New', monospace; border-radius: 0;
+}
+.diff-active { background: rgba(0,255,0,0.2); border: 2px solid #0f0; color: #0f0; }
+.diff-inactive { background: transparent; border: 2px solid #555; color: #888; }
+.start-btn, .done-btn {
+  margin-top: 30px; padding: 14px 60px; font-size: clamp(18px, 3vw, 28px);
+  font-weight: bold; background: rgba(0,255,0,0.15);
+  border: 3px solid #0f0; color: #0f0; cursor: pointer;
+  font-family: 'Courier New', monospace;
+}
+input[type=range] { width: 100%; accent-color: #0f0; }
+
+/* Game Screen */
+.game-screen { display: flex; width: 100%; height: 100%; }
+.left-panel {
+  width: 40%; height: 100%; position: relative;
+  background: #d4c9a8; overflow: hidden; border-right: 3px solid #333;
+}
+.right-panel {
+  width: 60%; height: 100%; background: #2d6b1e;
+  position: relative; overflow: hidden;
+}
+.back-btn {
+  position: absolute; top: 10px; left: 10px; color: #0f0;
+  font-size: clamp(14px, 1.8vw, 20px); background: rgba(0,0,0,0.6);
+  padding: 6px 12px; border-radius: 4px; cursor: pointer;
+  border: 2px solid #0f0; z-index: 30; font-weight: bold;
+  font-family: 'Courier New', monospace;
+}
+.hdg-label {
+  position: absolute; top: 10px; right: 10px; color: #0f0;
+  font-size: clamp(12px, 1.5vw, 16px); background: rgba(0,0,0,0.5);
+  padding: 4px 8px; border-radius: 4px;
+}
+.q-label {
+  position: absolute; bottom: 10px; left: 10px; color: #0f0;
+  font-size: clamp(11px, 1.2vw, 14px); background: rgba(0,0,0,0.5);
+  padding: 4px 8px; border-radius: 4px;
+}
+.target-prompt {
+  position: absolute; top: 3%; left: 50%; transform: translateX(-50%);
+  border: 3px solid #0f0; padding: 8px 24px; z-index: 20;
+  background: rgba(0,20,0,0.7); text-align: center;
+  color: #0f0; font-size: clamp(18px, 3vw, 32px); font-weight: bold;
+}
+.building-wrapper {
+  position: absolute; transform: translate(-50%, -50%);
+  cursor: pointer; z-index: 10; width: 144px; height: 132px;
+  display: flex; align-items: center; justify-content: center;
+  border: 3px solid transparent; border-radius: 4px;
+}
+.building-wrapper:hover { background: rgba(255,255,255,0.05); }
+.building-wrapper.correct { border-color: #0f0; background: rgba(0,255,0,0.1); }
+.building-wrapper.incorrect { border-color: #f44; background: rgba(255,0,0,0.1); }
+.center-bldg {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%); z-index: 5; pointer-events: none;
+}
+.tree {
+  position: absolute; border-radius: 50%; z-index: 1; pointer-events: none;
+}
+.reaction-box {
+  position: absolute; border: 2px solid #0f0; padding: 8px 12px;
+  background: rgba(0,20,0,0.8); z-index: 30; text-align: center;
+  transform: translateX(-50%);
+}
+.reaction-label { color: #0f0; font-size: clamp(11px, 1.5vw, 16px); }
+.reaction-time { font-size: clamp(16px, 2.5vw, 28px); font-weight: bold; }
+
+/* Results Screen */
+.results-screen {
+  width: 100%; height: 100%; background: #0a0a2a;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 20px;
+}
+.results-boxes { display: flex; gap: clamp(16px, 4vw, 40px); flex-wrap: wrap; justify-content: center; margin-bottom: 30px; }
+.result-box {
+  border: 3px solid #0f0; padding: clamp(16px, 3vw, 32px);
+  text-align: center; min-width: 180px;
+}
+.result-box .label { color: #0f0; font-size: clamp(16px, 2.5vw, 24px); margin-bottom: 12px; }
+.result-box .value { color: #0f0; font-size: clamp(28px, 5vw, 48px); font-weight: bold; }
+.breakdown {
+  max-height: 200px; overflow-y: auto; width: 100%; max-width: 600px;
+  margin-bottom: 20px; padding: 0 10px;
+}
+.breakdown-row {
+  display: flex; justify-content: space-between;
+  font-size: clamp(10px, 1.2vw, 13px); padding: 2px 0;
+  border-bottom: 1px solid rgba(0,255,0,0.1);
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const SEMI_CARDINAL_DIRS = ["N","NE","E","SE","S","SW","W","NW"];
+const ALL_DIRS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const DIR_TO_ANGLE = {N:0,NNE:22.5,NE:45,ENE:67.5,E:90,ESE:112.5,SE:135,SSE:157.5,S:180,SSW:202.5,SW:225,WSW:247.5,W:270,WNW:292.5,NW:315,NNW:337.5};
+const TARGET_DIRS = ["N","E","S","W"];
+const DIR_NAMES = {N:"N.",E:"E.",S:"S.",W:"W."};
+const DIR_FULL = {N:"North",E:"East",S:"South",W:"West"};
+
+let state = {
+  screen: "settings",
+  difficulty: "easy",
+  questionCount: 20,
+  audioCallout: false,
+  showCorrect: true,
+  hideReactionFeedback: false,
+  questions: [],
+  qIdx: 0,
+  results: [],
+  startTime: 0,
+  selected: null,
+  showResult: false,
+  trees: Array.from({length:60},()=>({x:Math.random()*100,y:Math.random()*100,size:8+Math.random()*10,opacity:0.3+Math.random()*0.4,g:100+Math.floor(Math.random()*50)})),
+};
+
+function generateQuestions(count, difficulty) {
+  const pool = difficulty === "easy" ? SEMI_CARDINAL_DIRS : ALL_DIRS;
+  const qs = [];
+  for (let i = 0; i < count; i++) {
+    let h, t;
+    do {
+      h = pool[Math.floor(Math.random()*pool.length)];
+      t = TARGET_DIRS[Math.floor(Math.random()*4)];
+    } while (i > 0 && qs[i-1].heading === h && qs[i-1].target === t);
+    qs.push({heading:h, target:t, headingAngle:DIR_TO_ANGLE[h]});
+  }
+  return qs;
+}
+
+function getBuildingPositions(headingAngle) {
+  const cx=50,cy=50,dist=30,pos={};
+  TARGET_DIRS.forEach(dir=>{
+    const a=((DIR_TO_ANGLE[dir]-headingAngle+360)%360)*(Math.PI/180);
+    pos[dir]={x:cx+dist*Math.sin(a),y:cy-dist*Math.cos(a)};
+  });
+  return pos;
+}
+
+function render() {
+  const app = document.getElementById("app");
+  if (state.screen==="settings") renderSettings(app);
+  else if (state.screen==="game") renderGame(app);
+  else renderResults(app);
+}
+
+function renderSettings(app) {
+  app.innerHTML = `
+  <div class="settings-screen">
+    <h1>ASTB UAV Practice</h1>
+    <p class="subtitle">PBM UAV Target Selection Trainer</p>
+    <div class="settings-box">
+      <div style="margin-bottom:20px">
+        <div style="color:#0f0;font-size:clamp(13px,1.5vw,16px);margin-bottom:10px">Difficulty:</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="diff-btn ${state.difficulty==='easy'?'diff-active':'diff-inactive'}" onclick="setDiff('easy')">Cardinal & Semi-Cardinal (Easy)</button>
+          <button class="diff-btn ${state.difficulty==='hard'?'diff-active':'diff-inactive'}" onclick="setDiff('hard')">All Offsets incl. 30°/60° (Hard)</button>
+        </div>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="color:#0f0;font-size:clamp(13px,1.5vw,16px);margin-bottom:10px">Questions: ${state.questionCount}</div>
+        <input type="range" min="10" max="42" value="${state.questionCount}" oninput="setQCount(this.value)">
+      </div>
+      <div class="toggle-row">
+        <span>Desired Target Audio Callout</span>
+        <button class="toggle-btn ${state.audioCallout?'toggle-on':'toggle-off'}" onclick="toggleAudio()">${state.audioCallout?'ON':'OFF'}</button>
+      </div>
+      <div class="toggle-row">
+        <span>Show Correct Target If Incorrect</span>
+        <button class="toggle-btn ${state.showCorrect?'toggle-on':'toggle-off'}" onclick="toggleCorrect()">${state.showCorrect?'ON':'OFF'}</button>
+      </div>
+      <div class="toggle-row">
+        <span>Hide Per-Question Feedback (Test Mode)</span>
+        <button class="toggle-btn ${state.hideReactionFeedback?'toggle-on':'toggle-off'}" onclick="toggleFeedback()">${state.hideReactionFeedback?'ON':'OFF'}</button>
+      </div>
+    </div>
+    <button class="start-btn" onclick="startGame()">START</button>
+  </div>`;
+}
+
+function renderGame(app) {
+  const q = state.questions[state.qIdx];
+  const pos = getBuildingPositions(q.headingAngle);
+  const bldgSVGs = [
+    `<svg width="91" height="78" viewBox="0 0 91 78"><polygon points="45.5,18 80,33 45.5,48 11,33" fill="#a8acb8" stroke="#667" stroke-width="1.5"/><polygon points="11,33 45.5,48 45.5,58 11,43" fill="#8a8e9a" stroke="#667" stroke-width="1.5"/><polygon points="45.5,48 80,33 80,43 45.5,58" fill="#7a7e8a" stroke="#667" stroke-width="1.5"/><polygon points="45.5,20 70,31 45.5,42 21,31" fill="#b8bcc8" stroke="#999" stroke-width="0.5"/></svg>`,
+    `<svg width="91" height="78" viewBox="0 0 91 78"><polygon points="45.5,5 65,15 45.5,25 26,15" fill="#c0c4d0" stroke="#667" stroke-width="1.5"/><polygon points="26,15 45.5,25 45.5,65 26,55" fill="#8a8e9a" stroke="#667" stroke-width="1.5"/><polygon points="45.5,25 65,15 65,55 45.5,65" fill="#a0a4b0" stroke="#667" stroke-width="1.5"/><rect x="32" y="28" width="6" height="5" fill="#556" opacity="0.5" transform="skewY(-25)"/><rect x="32" y="38" width="6" height="5" fill="#556" opacity="0.5" transform="skewY(-25)"/></svg>`,
+    `<svg width="91" height="78" viewBox="0 0 91 78"><polygon points="35,12 60,24 35,36 10,24" fill="#b0b4c0" stroke="#667" stroke-width="1.5"/><polygon points="10,24 35,36 35,52 10,40" fill="#8a8e9a" stroke="#667" stroke-width="1.5"/><polygon points="35,36 60,24 60,40 35,52" fill="#9a9eaa" stroke="#667" stroke-width="1.5"/><polygon points="50,28 75,40 50,52 25,40" fill="#a8acb8" stroke="#667" stroke-width="1.5"/><polygon points="25,40 50,52 50,62 25,50" fill="#808490" stroke="#667" stroke-width="1.5"/><polygon points="50,52 75,40 75,50 50,62" fill="#9094a0" stroke="#667" stroke-width="1.5"/></svg>`,
+    `<svg width="91" height="78" viewBox="0 0 91 78"><polygon points="45.5,20 72,34 45.5,48 19,34" fill="#6a6e7a" stroke="#556" stroke-width="1.5"/><polygon points="19,34 45.5,48 45.5,56 19,42" fill="#b0b4c0" stroke="#667" stroke-width="1.5"/><polygon points="45.5,48 72,34 72,42 45.5,56" fill="#a0a4b0" stroke="#667" stroke-width="1.5"/><line x1="32" y1="27" x2="59" y2="27" stroke="#556" stroke-width="1"/></svg>`
+  ];
+
+  let treesHTML = state.trees.map(t=>`<div class="tree" style="left:${t.x}%;top:${t.y}%;width:${t.size}px;height:${t.size}px;background:rgba(60,${t.g},40,${t.opacity})"></div>`).join("");
+
+  let buildingsHTML = TARGET_DIRS.map((dir,i)=>{
+    let cls = "building-wrapper";
+    if (state.showResult) {
+      if (state.selected===dir) cls += state.selected===q.target ? " correct" : " incorrect";
+      else if (state.showCorrect && dir===q.target && state.selected!==q.target) cls += " correct";
+    }
+    return `<div class="${cls}" style="left:${pos[dir].x}%;top:${pos[dir].y}%" onclick="clickBuilding('${dir}')">${bldgSVGs[i]}</div>`;
+  }).join("");
+
+  let reactionHTML = "";
+  if (state.showResult && !state.hideReactionFeedback && state.selected) {
+    const rt = state.results[state.results.length-1].reactionTime;
+    const col = state.selected===q.target ? "#0f0" : "#f44";
+    const top = Math.min(pos[state.selected].y+12, 85);
+    reactionHTML = `<div class="reaction-box" style="left:${pos[state.selected].x}%;top:${top}%">
+      <div class="reaction-label">REACTION<br>TIME (s)</div>
+      <div class="reaction-time" style="color:${col}">${rt.toFixed(2)}</div>
+    </div>`;
+  }
+
+  app.innerHTML = `
+  <div class="game-screen">
+    <div class="left-panel">
+      <svg width="100%" height="100%" style="position:absolute;top:0;left:0">
+        ${[20,40,60,80].map(p=>`<line x1="${p}%" y1="0" x2="${p}%" y2="100%" stroke="#aaa" stroke-width="0.5" opacity="0.5"/><line x1="0" y1="${p}%" x2="100%" y2="${p}%" stroke="#aaa" stroke-width="0.5" opacity="0.5"/>`).join("")}
+        <ellipse cx="30%" cy="35%" rx="20%" ry="15%" fill="none" stroke="#998" stroke-width="1" opacity="0.4"/>
+        <ellipse cx="30%" cy="35%" rx="12%" ry="9%" fill="none" stroke="#998" stroke-width="1" opacity="0.3"/>
+        <ellipse cx="65%" cy="70%" rx="18%" ry="12%" fill="none" stroke="#998" stroke-width="1" opacity="0.4"/>
+        <ellipse cx="65%" cy="70%" rx="10%" ry="7%" fill="none" stroke="#998" stroke-width="1" opacity="0.3"/>
+      </svg>
+      <div style="position:absolute;top:5%;right:10%;display:flex;flex-direction:column;align-items:center">
+        <div style="font-size:clamp(24px,4vw,40px);font-weight:bold;color:#000">N</div>
+        <div style="font-size:clamp(16px,3vw,28px);color:#000">▲</div>
+      </div>
+      <svg style="position:absolute;top:10%;left:15%;width:45%;height:55%" viewBox="0 0 200 200">
+        <g transform="rotate(${q.headingAngle}, 100, 100)">
+          <circle cx="100" cy="45" r="12" fill="none" stroke="red" stroke-width="3.5"/>
+          <line x1="100" y1="26" x2="100" y2="33" stroke="red" stroke-width="3.5"/>
+          <line x1="100" y1="57" x2="100" y2="64" stroke="red" stroke-width="3.5"/>
+          <line x1="81" y1="45" x2="88" y2="45" stroke="red" stroke-width="3.5"/>
+          <line x1="112" y1="45" x2="119" y2="45" stroke="red" stroke-width="3.5"/>
+          <line x1="100" y1="57" x2="100" y2="95" stroke="red" stroke-width="3"/>
+          <polygon points="100,95 70,160 100,140 130,160" fill="#e8a020" stroke="#c08010" stroke-width="2"/>
+        </g>
+      </svg>
+      <div class="back-btn" onclick="goBack()">← Back</div>
+      <div class="hdg-label">HDG: ${q.heading} (${q.headingAngle}°)</div>
+      <div class="q-label">Q ${state.qIdx+1} / ${state.questions.length}</div>
+      <div style="position:absolute;bottom:8%;left:10%;font-size:clamp(10px,1.5vw,14px);color:#555">TERRAIN MAP</div>
+    </div>
+    <div class="right-panel">
+      ${treesHTML}
+      <div class="target-prompt">Target The ${DIR_NAMES[q.target]} BLDG</div>
+      <div class="center-bldg">
+        <svg width="110" height="95" viewBox="0 0 110 95">
+          <polygon points="55,8 90,28 55,48 20,28" fill="#b0b4c0" stroke="#667" stroke-width="2"/>
+          <polygon points="20,28 55,48 55,75 20,55" fill="#8a8e9a" stroke="#667" stroke-width="1.5"/>
+          <polygon points="55,48 90,28 90,55 55,75" fill="#a0a4b0" stroke="#667" stroke-width="1.5"/>
+        </svg>
+      </div>
+      ${buildingsHTML}
+      ${reactionHTML}
+    </div>
+  </div>`;
+}
+
+function renderResults(app) {
+  const r = state.results;
+  const correct = r.filter(x=>x.correct).length;
+  const total = r.length;
+  const avgRT = r.reduce((s,x)=>s+x.reactionTime,0)/total;
+  const co = r.filter(x=>x.correct);
+  const avgRTc = co.length>0 ? co.reduce((s,x)=>s+x.reactionTime,0)/co.length : 0;
+
+  let breakdownHTML = r.map((x,i)=>`<div class="breakdown-row" style="color:${x.correct?'#0f0':'#f44'}">
+    <span>Q${i+1}: HDG ${x.heading} → Target ${x.target}</span>
+    <span>Selected: ${x.selected} | ${x.reactionTime.toFixed(2)}s ${x.correct?'✓':'✗'}</span>
+  </div>`).join("");
+
+  let extraStat = "";
+  if (co.length>0 && co.length!==total) {
+    extraStat = `<div style="color:#0a0;font-size:clamp(12px,1.5vw,16px);margin-bottom:20px">Avg RT (correct only): ${avgRTc.toFixed(2)}s</div>`;
+  }
+
+  app.innerHTML = `
+  <div class="results-screen">
+    <div class="results-boxes">
+      <div class="result-box"><div class="label">Ratio of<br>Correct Targets<br>Selected:</div><div class="value">${correct}/${total}</div></div>
+      <div class="result-box"><div class="label">Average<br>Reaction<br>Time (s):</div><div class="value">${avgRT.toFixed(2)}</div></div>
+    </div>
+    ${extraStat}
+    <div class="breakdown">${breakdownHTML}</div>
+    <button class="done-btn" onclick="goBack()">DONE</button>
+  </div>`;
+}
+
+// Actions
+function setDiff(d) { state.difficulty=d; render(); }
+function setQCount(v) { state.questionCount=+v; render(); }
+function toggleAudio() { state.audioCallout=!state.audioCallout; render(); }
+function toggleCorrect() { state.showCorrect=!state.showCorrect; render(); }
+function toggleFeedback() { state.hideReactionFeedback=!state.hideReactionFeedback; render(); }
+function goBack() { state.screen="settings"; state.selected=null; state.showResult=false; render(); }
+
+function startGame() {
+  state.questions = generateQuestions(state.questionCount, state.difficulty);
+  state.qIdx = 0;
+  state.results = [];
+  state.selected = null;
+  state.showResult = false;
+  state.startTime = Date.now();
+  state.screen = "game";
+  render();
+  doAudioCallout();
+}
+
+function doAudioCallout() {
+  if (!state.audioCallout) return;
+  const q = state.questions[state.qIdx];
+  const u = new SpeechSynthesisUtterance(`Target the ${DIR_FULL[q.target]} building`);
+  u.rate = 1.1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+function clickBuilding(dir) {
+  if (state.showResult) return;
+  const q = state.questions[state.qIdx];
+  const rt = (Date.now()-state.startTime)/1000;
+  const correct = dir===q.target;
+  state.selected = dir;
+  state.showResult = true;
+  state.results.push({question:state.qIdx, heading:q.heading, target:q.target, selected:dir, correct, reactionTime:rt});
+  render();
+
+  setTimeout(()=>{
+    if (state.qIdx+1 < state.questions.length) {
+      state.qIdx++;
+      state.selected = null;
+      state.showResult = false;
+      state.startTime = Date.now();
+      render();
+      doAudioCallout();
+    } else {
+      state.screen = "results";
+      render();
+    }
+  }, 1200);
+}
+
+render();
+</script>
+</body>
+</html>
